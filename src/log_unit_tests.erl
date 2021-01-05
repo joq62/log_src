@@ -70,8 +70,7 @@ setup()->
   %  logger:add_handler(zz,logger_std_h,Config),
   %  logger:error("hej"),
 
-    ?assertMatch(ok,zz:boot()),
-    ?assertMatch(ok,yy:boot()),
+    
     ok.
 
 %% --------------------------------------------------------------------
@@ -81,8 +80,7 @@ setup()->
 %% -------------------------------------------------------------------    
 
 cleanup()->
-  timer:sleep(2000),
-    init:stop(),
+     init:stop(),
     ok.
 %% --------------------------------------------------------------------
 %% Function:start/0 

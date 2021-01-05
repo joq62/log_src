@@ -4,7 +4,7 @@
 %%% 
 %%% Create1d : 10 dec 2012
 %%% -------------------------------------------------------------------
--module(zz). 
+-module(handler_basic). 
      
 %% --------------------------------------------------------------------
 %% Include files
@@ -15,12 +15,29 @@
 %% Definitions
 
 %% --------------------------------------------------------------------
-
+-define(StdHandlerConfig,#{config =>
+				#{burst_limit_enable => true,burst_limit_max_count => 500,
+				  burst_limit_window_time => 1000,drop_mode_qlen => 200,
+				  filesync_repeat_interval => no_repeat,flush_qlen => 1000,
+				  overload_kill_enable => false,
+				  overload_kill_mem_size => 3000000,
+				  overload_kill_qlen => 20000,
+				  overload_kill_restart_after => 5000,sync_mode_qlen => 10,
+				  type => standard_io},
+			    filter_default => stop,
+			    filters =>
+				[{remote_gl,{fun logger_filters:remote_gl/2,stop}},
+				 {domain,{fun logger_filters:domain/2,
+					  {log,super,[otp,sasl]}}},
+				 {no_domain,{fun logger_filters:domain/2,
+					     {log,undefined,[]}}}],
+			    formatter =>
+				{logger_formatter,#{legacy_header => true,single_line => false}},
+			    id => default,level => all,module => logger_std_h}).
 
 %% --------------------------------------------------------------------
 %% External exports
--export([test_event/0,test_event/1,alert/1]).
--export([boot/0]).
+-export([start/0]).
 -export([adding_handler/1, removing_handler/1, log/2]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2]).
 
@@ -33,26 +50,17 @@
 %% Description: List of test cases 
 %% Returns: non
 %% --------------------------------------------------------------------
-alert(Text)->
-    log_normal_test:print(Text),
-    logger:alert("Alert "++Text).
-
-test_event(Info)->
-    logger:error(Info++"_"++atom_to_list(?MODULE)).
-test_event()->
-    logger:error("hej").
-
+start()->
+   % [StdConfig]=logger:get_handler_config(),
+    adding_handler(?StdHandlerConfig).
 %% --------------------------------------------------------------------
 %% Function:tes cases
 %% Description: List of test cases 
 %% Returns: non
 %% --------------------------------------------------------------------
-boot()->
-    Config=#{config => #{file=>"./zz.log"}, level=>info},
-    logger:add_handler(?MODULE,logger_std_h,Config).
-
 adding_handler(Config) ->
-    MyConfig = maps:get(config,Config,#{file => "zz.log"}),
+    MyConfig=Config,
+    % MyConfig = maps:get(config,Config,#{file => "zz.log"}),
     {ok, Pid} = gen_server:start(?MODULE, MyConfig, []),
     {ok, Config#{config => MyConfig#{pid => Pid}}}.
 
@@ -60,12 +68,15 @@ removing_handler(#{config := #{pid := Pid}}) ->
     gen_server:stop(Pid).
 
 log(LogEvent,#{config := #{pid := Pid}} = Config) ->
-    log_normal_test:print("Joq~n"),
     gen_server:cast(Pid, {log, LogEvent, Config}).
 
-init(#{file := File}) ->
-    {ok, Fd} = file:open(File, [append, {encoding, utf8}]),
-    {ok, #{file => File, fd => Fd}}.
+%init(#{file := File}) ->
+%    {ok, Fd} = file:open(File, [append, {encoding, utf8}]),
+%    {ok, #{file => File, fd => Fd}}.
+
+init(State) ->
+    %{ok, Fd} = file:open(File, [append, {encoding, utf8}]),
+    {ok, State}.
 
 handle_call(_, _, State) ->
     {reply, {error, bad_request}, State}.

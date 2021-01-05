@@ -14,8 +14,7 @@
 %% --------------------------------------------------------------------
 
 %% External exports
--export([start/0,
-	print/1,print/2]).
+-export([start/0]).
 
 
 
@@ -33,17 +32,18 @@ start()->
     ?assertEqual(ok,setup()),
     ?debugMsg("stop setup"),
     
-  %  ?debugMsg("Start test_1"),
-  %  ?assertEqual(ok,test_1()),
-  %  ?debugMsg("stop test_1"),
+    ?debugMsg("Start test_1"),
+    ?assertEqual(ok,test_1()),
+    ?debugMsg("stop test_1"),
 
    % ?debugMsg("Start test_2"),
   %  ?assertEqual(ok,test_2()),
   %  ?debugMsg("stop test_2"),
 
-    ?debugMsg("Start test_3"),
-    ?assertEqual(ok,test_3(2000)),
-    ?debugMsg("stop test_3"),
+ 
+%   ?debugMsg("Start test_3"),
+%    ?assertEqual(ok,test_3(2000)),
+%    ?debugMsg("stop test_3"),
     
    
       %% End application tests
@@ -73,22 +73,7 @@ test_3(N) ->
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% --------------------------------------------------------------------
-
-
-exec(M,F,A,T)->
-    {ok,HostId}=net:gethostname(),
-    Node=list_to_atom("terminal@"++HostId),
-    rpc:call(Node,terminal,exec,[M,F,A,T],T).
-
-print(Text)->
-    {ok,HostId}=net:gethostname(),
-    Node=list_to_atom("terminal@"++HostId),
-    rpc:cast(Node,terminal,print,[Text]). 
-
-print(Text,List)->
-    {ok,HostId}=net:gethostname(),
-    Node=list_to_atom("terminal@"++HostId),
-    rpc:cast(Node,terminal,print,[Text,List]).    
+   
 
 %% --------------------------------------------------------------------
 %% Function:start/0 
@@ -97,19 +82,7 @@ print(Text,List)->
 %% --------------------------------------------------------------------
 test_2()->
 
-  ?assertEqual(ok,logger:error("error eexist file")),
-
-  %% Print log to a file
-    ?assertEqual(ok,logger:set_handler_config([default,
-					       #{config => 
-						     #{file =>"erlang.log",
-						       max_no_bytes =>100,
-						       max_no_files =>2}}])),
-		 
-    ?assertEqual(ok,logger:error("error eexist file")),
-    
-    ?assertEqual(ok,os:cmd("cat erlang.log")),
-    
+  
     ok.
 %% --------------------------------------------------------------------
 %% Function:start/0 
@@ -117,29 +90,13 @@ test_2()->
 %% Returns: non
 %% --------------------------------------------------------------------
 test_1()->
-    ?assertEqual(ok,exec(logger,i,[primary],2000)),
-    ?assertEqual(ok,exec(logger,i,[handlers],2000)),
+    ?assertMatch({ok,_},
+		 handler_basic:start()),
+     ?assertMatch(ok,logger:error("Basic text test_1")),
 
-    % Default set up
-     ?assertEqual(ok,exec(logger,error,["error eexist file"],2000)),
-    
-    %% Formatter update
-    ?assertEqual(ok,exec(logger,set_handler_config,
-			 [default,formatter,{logger_formatter,
-					     #{ template =>[time," ",file,":",line," ",level,":",msg,"\n"]}}],2000)),
-
-    ?assertEqual(ok,exec(logger,error,["Test module line ",#{file=>?FILE, line=>?LINE}],2000)),
-
-    %% Print log to a file
-    ?assertEqual(ok,exec(logger,set_handler_config,[default,#{config => #{file =>"erlang.log",
-									  max_no_bytes =>100,
-									  max_no_files =>2}},
-							      #{formatter => {logger_formatter, #{}}}],2000)),
-		 
-    ?assertEqual(ok,exec(logger,error,["Test module line "],2000)),
-    
-    ?assertEqual(ok,exec(os,cmd,["cat erlang.log"],2000)),
-					     
+    ?assertMatch({ok,_},
+		 handler_basic_terminal:start()),
+     ?assertMatch(ok,handler_basic_terminal:info("Basic text on terminal")),
     
     ok.
 %% --------------------------------------------------------------------
@@ -148,7 +105,7 @@ test_1()->
 %% Returns: non
 %% --------------------------------------------------------------------
 setup()->
-    
+  
     ok.
 
 %% --------------------------------------------------------------------
