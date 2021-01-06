@@ -4,7 +4,7 @@
 %%% 
 %%% Created : 10 dec 2012
 %%% -------------------------------------------------------------------
--module(log_normal_test).  
+-module(event_test).  
    
 %% --------------------------------------------------------------------
 %% Include files
@@ -41,9 +41,9 @@ start()->
     ?debugMsg("stop test_2"),
 
  
-%   ?debugMsg("Start test_3"),
-%    ?assertEqual(ok,test_3(2000)),
-%    ?debugMsg("stop test_3"),
+    ?debugMsg("Start test_format_term"),
+    ?assertEqual(ok,test_format_term()),
+    ?debugMsg("stop test_format_term"),
     
    
       %% End application tests
@@ -60,20 +60,37 @@ start()->
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% --------------------------------------------------------------------
-test_3(0)->
-    ok;
-test_3(N) ->
-    logger:alert("Alert"),
-    logger:notice("Notice"),
-    logger:info("Info"),
-    zz:alert("Alert out of disc ~n"),
-    test_3(N-1).
+
 %% --------------------------------------------------------------------
 %% Function:start/0 
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% --------------------------------------------------------------------
-   
+% {{date(),time()},Severity,Info,   node(),Module,Line]
+%   term() term()   atom    string  atom    atom   int
+% 
+-define(LOG(Severity,Msg,Node,Module,Line),
+	[{{timestamp,{date(),time()}},{severity,Severity},{message,Msg},{node,Node},{module,Module},{line,Line}}]).
+
+test_format_term()->
+    
+    File="glurk.tabort",
+    file:delete(File),
+    I1={alert,{error_in_call_to, module,function,[22,20]},node(),?MODULE,?LINE},
+    log_files:write_log_file(File,I1),
+
+    I2={ticket,{"restart control at node" },node(),?MODULE,?LINE},
+    log_files:write_log_file(File,I2),
+    
+    I3={info,{"Started application","control_100.app_spec","host","c0"},node(),?MODULE,?LINE},
+    log_files:write_log_file(File,I3),
+
+    io:format("file:consult(File) = ~p~n",[file:consult(File)]),
+    ok.
+
+
+
+    
 
 %% --------------------------------------------------------------------
 %% Function:start/0 
@@ -81,10 +98,14 @@ test_3(N) ->
 %% Returns: non
 %% --------------------------------------------------------------------
 test_2()->
-   ?assertMatch({ok,_},
-	        myhandler2:start()), 
+    ?assertMatch({_,
+		  [{"./glurk.log",0,{{2021,1,5},{23,33,45}}},
+		   {"./glurk1.log",0,{{2021,1,6},{0,6,56}}},
+		   {"./myhandler2.log",403,{{2021,1,6},{18,47,21}}},
+		   {"./master_log.log",_,_}]},
+		 log_files:size_all(".")),
+
     
-    ?assertMatch(ok,logger:error("Write to file test")),
     ok.
 %% --------------------------------------------------------------------
 %% Function:start/0 
@@ -92,13 +113,20 @@ test_2()->
 %% Returns: non
 %% --------------------------------------------------------------------
 test_1()->
-    ?assertMatch({ok,_},
-		 handler_basic:start()),
-     ?assertMatch(ok,logger:error("Basic text test_1 ~n")),
-
-    ?assertMatch({ok,_},
-		 handler_basic_terminal:start()),
-     ?assertMatch(ok,handler_basic_terminal:info("Basic text on terminal~n")),
+%    ?assertMatch({ok,_},
+%		 gen_event:start({local,log_event})),
+    
+%    ?assertMatch(ok,
+%		 gen_event:add_handler(log_event,log_event,[])),
+    ?assertMatch(ok,
+		 master_log:start()),
+    ?assertMatch(ok,
+		 gen_event:notify(master_log,{alert,"Alert Info 1"})),
+    ?assertMatch(ok,
+		 gen_event:notify(master_log,{ticket,"Ticket Info 1"})),
+    ?assertMatch(ok,
+		 gen_event:notify(master_log,{log,"Log Info 1"})),
+    
     
     ok.
 %% --------------------------------------------------------------------
@@ -107,7 +135,7 @@ test_1()->
 %% Returns: non
 %% --------------------------------------------------------------------
 setup()->
-  
+    
     ok.
 
 %% --------------------------------------------------------------------

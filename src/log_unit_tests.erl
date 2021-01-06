@@ -36,9 +36,13 @@ start()->
     ?assertEqual(ok,init_test()),
   ?debugMsg("stop init_test"),
 
-    ?debugMsg("Start log_normal_test"),
-    ?assertEqual(ok,log_normal_test:start()),
-    ?debugMsg("stop log_normal_test"),
+    ?debugMsg("Start event_test"),
+    ?assertEqual(ok,event_test:start()),
+    ?debugMsg("stop event_test"),
+
+  %  ?debugMsg("Start log_normal_test"),
+  %  ?assertEqual(ok,log_normal_test:start()),
+  %  ?debugMsg("stop log_normal_test"),
     
    
       %% End application tests

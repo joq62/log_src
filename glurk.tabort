@@ -1,0 +1,18 @@
+{{timestamp,{{2021,1,6},{21,1,45}}},
+ {severity,alert},
+ {message,{error_in_call_to,module,function,[22,20]}},
+ {node,log_test@c2},
+ {module,event_test},
+ {line,79}}.
+{{timestamp,{{2021,1,6},{21,1,45}}},
+ {severity,ticket},
+ {message,{"restart control at node"}},
+ {node,log_test@c2},
+ {module,event_test},
+ {line,82}}.
+{{timestamp,{{2021,1,6},{21,1,45}}},
+ {severity,info},
+ {message,{"Started application","control_100.app_spec","host","c0"}},
+ {node,log_test@c2},
+ {module,event_test},
+ {line,85}}.
