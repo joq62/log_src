@@ -27,9 +27,9 @@
 
 -export([]).
 
--export([alert/1,
-	 ticket/1,
-	 log/1
+-export([alert/4,
+	 ticket/4,
+	 log/4
 	]).
 
 %-export([boot_app/0,
@@ -40,7 +40,7 @@
 	 delete_handler/2
 	]).
 
--export([start/0
+-export([start/1
 	]).
 
 %% gen_server callbacks
@@ -55,9 +55,9 @@
 
 %% Gen server functions
 
-start()-> 
+start(Args)-> 
     {ok,_}=gen_event:start_link({local, ?MODULE}),
-    ok=add_handler(?MODULE,[]).
+    ok=add_handler(?MODULE,[Args]).
 
 add_handler(Handler,Args)-> 
     gen_event:add_handler(?MODULE,Handler,Args).
@@ -71,12 +71,13 @@ delete_handler(Handler,Args)->
 %ping()->
  %%   gen_event:call(?MODULE, {ping}).
 
-alert(Info)->
-    gen_event:notify(?MODULE,{alert,Info}).
-ticket(Info)->
-    gen_event:notify(?MODULE,{ticket,Info}).
-log(Info)->
-    gen_event:notify(?MODULE,{log,Info}).
+alert(Msg,Node,Module,Line)->
+    io:format("~p~n",[{Msg,Node,Module,Line,?MODULE,?LINE}]),
+    ok=gen_event:notify(?MODULE,{alert,Msg,Node,Module,Line}).
+ticket(Msg,Node,Module,Line)->
+    ok=gen_event:notify(?MODULE,{ticket,Msg,Node,Module,Line}).
+log(Msg,Node,Module,Line)->
+    ok=gen_event:notify(?MODULE,{log,Msg,Node,Module,Line}).
 
 %%-----------------------------------------------------------------------
 
@@ -93,10 +94,17 @@ log(Info)->
 %%          {stop, Reason}
 %
 %% --------------------------------------------------------------------
-init([]) ->
-
+init([Args]) ->
+    
     %% -- Append to log file
-    File="./"++atom_to_list(?MODULE)++".log",
+    case lists:keyfind(file,1,Args) of
+	{file,File}->
+	    File;
+	false->
+	    File="./"++atom_to_list(?MODULE)++".log"
+    end,
+    io:format("~p~n",[{log,lists:append(["Event logger started with Args"],Args),node(),lists:keyfind(file,1,Args),?MODULE,?LINE}]),
+    log_files:write_log_file(File,{log,lists:append(["Event logger started with Args"],Args),node(),?MODULE,?LINE}),
     {ok, #state{file=File}}.
 %% --------------------------------------------------------------------
 %% Function: handle_call/3

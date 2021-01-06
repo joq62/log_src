@@ -36,20 +36,20 @@ start()->
     ?assertEqual(ok,test_1()),
     ?debugMsg("stop test_1"),
 
-    ?debugMsg("Start test_2"),
-    ?assertEqual(ok,test_2()),
-    ?debugMsg("stop test_2"),
+%    ?debugMsg("Start test_2"),
+%    ?assertEqual(ok,test_2()),
+%    ?debugMsg("stop test_2"),
 
  
-    ?debugMsg("Start test_format_term"),
-    ?assertEqual(ok,test_format_term()),
-    ?debugMsg("stop test_format_term"),
+ %   ?debugMsg("Start test_format_term"),
+ %   ?assertEqual(ok,test_format_term()),
+ %   ?debugMsg("stop test_format_term"),
     
    
       %% End application tests
-    ?debugMsg("Start cleanup"),
-    ?assertEqual(ok,cleanup()),
-    ?debugMsg("Stop cleanup"),
+%    ?debugMsg("Start cleanup"),
+%    ?assertEqual(ok,cleanup()),
+%    ?debugMsg("Stop cleanup"),
 
     ?debugMsg("------>"++atom_to_list(?MODULE)++" ENDED SUCCESSFUL ---------"),
     ok.
@@ -99,10 +99,7 @@ test_format_term()->
 %% --------------------------------------------------------------------
 test_2()->
     ?assertMatch({_,
-		  [{"./glurk.log",0,{{2021,1,5},{23,33,45}}},
-		   {"./glurk1.log",0,{{2021,1,6},{0,6,56}}},
-		   {"./myhandler2.log",403,{{2021,1,6},{18,47,21}}},
-		   {"./master_log.log",_,_}]},
+		  [{"./master_log.log",_,_}]},
 		 log_files:size_all(".")),
 
     
@@ -119,13 +116,19 @@ test_1()->
 %    ?assertMatch(ok,
 %		 gen_event:add_handler(log_event,log_event,[])),
     ?assertMatch(ok,
-		 master_log:start()),
+		 master_log:start([])),
+    
+  %  ?assertMatch(ok,
+%		 master_log:start([{file,"glurk.log"}])),
+    
     ?assertMatch(ok,
-		 gen_event:notify(master_log,{alert,"Alert Info 1"})),
+		 master_log:alert(["Only one host alive"],node(),?MODULE,?LINE)),
     ?assertMatch(ok,
-		 gen_event:notify(master_log,{ticket,"Ticket Info 1"})),
+		 master_log:ticket(["Several outage at host","c0"],node(),?MODULE,?LINE)),
+    Result=rpc:call(glurk,erlang,date,[]),
     ?assertMatch(ok,
-		 gen_event:notify(master_log,{log,"Log Info 1"})),
+		 master_log:log([Result|["in rpc:call",glurk,erlang,date,[]]],node(),?MODULE,?LINE)),
+    
     
     
     ok.

@@ -46,9 +46,9 @@ start()->
     
    
       %% End application tests
-    ?debugMsg("Start cleanup"),
- %   ?assertEqual(ok,cleanup()),
-    ?debugMsg("Stop cleanup"),
+%    ?debugMsg("Start cleanup"),
+%    ?assertEqual(ok,cleanup()),
+%    ?debugMsg("Stop cleanup"),
 
     ?debugMsg("------>"++atom_to_list(?MODULE)++" ENDED SUCCESSFUL ---------"),
     ok.
@@ -84,7 +84,8 @@ setup()->
 %% -------------------------------------------------------------------    
 
 cleanup()->
-     init:stop(),
+    timer:sleep(2000),
+    init:stop(),
     ok.
 %% --------------------------------------------------------------------
 %% Function:start/0 
