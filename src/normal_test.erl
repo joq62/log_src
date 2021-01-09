@@ -4,13 +4,13 @@
 %%% 
 %%% Created : 10 dec 2012
 %%% -------------------------------------------------------------------
--module(event_test).  
+-module(normal_test).  
    
 %% --------------------------------------------------------------------
 %% Include files
 %% --------------------------------------------------------------------
 -include_lib("eunit/include/eunit.hrl").
--include_lib("kernel/include/logger.hrl").
+
 %% --------------------------------------------------------------------
 
 %% External exports
@@ -110,25 +110,18 @@ test_2()->
 %% Returns: non
 %% --------------------------------------------------------------------
 test_1()->
-%    ?assertMatch({ok,_},
-%		 gen_event:start({local,log_event})),
+
     
-%    ?assertMatch(ok,
-%		 gen_event:add_handler(log_event,log_event,[])),
-    ?assertMatch(ok,
-		 master_log:start([])),
-    
-  %  ?assertMatch(ok,
-%		 master_log:start([{file,"glurk.log"}])),
-    
-    ?assertMatch(ok,
-		 master_log:alert(["Only one host alive"],node(),?MODULE,?LINE)),
-    ?assertMatch(ok,
-		 master_log:ticket(["Several outage at host","c0"],node(),?MODULE,?LINE)),
     Result=rpc:call(glurk,erlang,date,[]),
     ?assertMatch(ok,
-		 master_log:log([Result|["in rpc:call",glurk,erlang,date,[]]],node(),?MODULE,?LINE)),
+		 sys_log:log([Result|["in rpc:call",glurk,erlang,date,[]]],node(),?MODULE,?LINE)),
     
+    ?assertMatch(ok,
+		 sys_log:ticket(["Several outage at host","c0"],node(),?MODULE,?LINE)),
+   
+    ?assertMatch(ok,
+		 sys_log:alert(["Only one host alive"],node(),?MODULE,?LINE)),
+   
     
     
     ok.

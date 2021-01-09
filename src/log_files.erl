@@ -21,19 +21,33 @@
 -export([size_all/1,
 	write_log_file/2,
 	 unconsult/2,
-	format/5]).
+	format/5,
+	 date_time/0]).
 
 
 
 %% ====================================================================
 %% External functions
 %% ====================================================================
+
+date_time()->
+    {Y,M,D}=date(),
+    {H,Min,S}=time(),
+    DateTime=
+	integer_to_list(Y)
+	++"-"++integer_to_list(M)++"-"
+	++integer_to_list(D)++" "
+	++integer_to_list(H)++":"
+	++integer_to_list(Min)++":"
+	++integer_to_list(S)++" ",
+    DateTime.
+
 %% --------------------------------------------------------------------
 %% Function:tes cases
 %% Description: List of test cases 
 %% Returns: non
 %% --------------------------------------------------------------------
-write_log_file(File,{Severity,Msg,Node,Module,Line})->
+write_log_file(File,[Severity,Msg,Node,Module,Line])->
     unconsult(File,format(Severity,Msg,Node,Module,Line)).
 
 format(Severity,Msg,Node,Module,Line)->

@@ -37,7 +37,7 @@ start()->
   ?debugMsg("stop init_test"),
 
     ?debugMsg("Start event_test"),
-    ?assertEqual(ok,event_test:start()),
+    ?assertEqual(ok,normal_test:start()),
     ?debugMsg("stop event_test"),
 
   %  ?debugMsg("Start log_normal_test"),
@@ -46,9 +46,9 @@ start()->
     
    
       %% End application tests
-%    ?debugMsg("Start cleanup"),
-%    ?assertEqual(ok,cleanup()),
-%    ?debugMsg("Stop cleanup"),
+    ?debugMsg("Start cleanup"),
+    ?assertEqual(ok,cleanup()),
+    ?debugMsg("Stop cleanup"),
 
     ?debugMsg("------>"++atom_to_list(?MODULE)++" ENDED SUCCESSFUL ---------"),
     ok.
@@ -60,7 +60,6 @@ start()->
 %% Returns: non
 %% --------------------------------------------------------------------
 init_test()->
-   % logger:error("Event 1"),
     
     ok.
 
@@ -70,9 +69,7 @@ init_test()->
 %% Returns: non
 %% --------------------------------------------------------------------
 setup()->
-  %  Config=#{config => #{file=>"./zz.log"}, level=>info},
-  %  logger:add_handler(zz,logger_std_h,Config),
-  %  logger:error("hej"),
+    ?assertMatch({ok,_},sys_log:start()),
 
     
     ok.
@@ -84,7 +81,7 @@ setup()->
 %% -------------------------------------------------------------------    
 
 cleanup()->
-    timer:sleep(2000),
+    timer:sleep(1000),
     init:stop(),
     ok.
 %% --------------------------------------------------------------------
