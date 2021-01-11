@@ -1,43 +1,53 @@
 %%% -------------------------------------------------------------------
 %%% @author  : Joq Erlang
-%%% @doc: : 
-%%% Manage Computers
+%%% @doc : represent a logical vm  
 %%% 
-%%% Created : 
+%%% Supports the system with standard erlang vm functionality, load and start
+%%% of an erlang application (downloaded from git hub) and "dns" support 
+%%% 
+%%% Make and start the board start SW.
+%%%  boot_service initiates tcp_server and l0isten on port
+%%%  Then it's standby and waits for controller to detect the board and start to load applications
+%%% 
+%%%     
 %%% -------------------------------------------------------------------
--module(sys_log). 
+-module(syslog_unit_test). 
 
 -behaviour(gen_server).
 %% --------------------------------------------------------------------
 %% Include files
 %% --------------------------------------------------------------------
-%-include("timeout.hrl").
-%-include("log.hrl").
-
+%-include("infra.hrl").
 %% --------------------------------------------------------------------
-
+-include_lib("eunit/include/eunit.hrl").
 %% --------------------------------------------------------------------
 %% Key Data structures
 %% 
 %% --------------------------------------------------------------------
--record(state, {file}).
+-record(state,{}).
 
-
-
-%% --------------------------------------------------------------------
-%% Definitions 
+	  
 %% --------------------------------------------------------------------
 
-% OaM related
--export([alert/4,
-	 ticket/4,
-	 log/4]).
+%% ====================================================================
+%% External functions
+%% ====================================================================
 
--export([start/0,
-	 stop/0,
-	 ping/0
+
+%% server interface
+-export([start_test/1 %test suits	 
 	]).
 
+-export([ping/0	 
+	]).
+
+
+
+
+-export([start/0,
+	 stop/0
+	 ]).
+%% internal 
 %% gen_server callbacks
 -export([init/1, handle_call/3,handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
@@ -46,34 +56,35 @@
 %% External functions
 %% ====================================================================
 
+%C="https://"++Uid++":"++Pwd++"@github.com/"++Uid++"/"++SId++".git".
+
 %% Asynchrounus Signals
+start_test([TestConfig])->
+    io:format("TestConfig ~p~n",[file:consult(TestConfig)]),
+    application:start(?MODULE).
 
-
-
-%% Gen server functions
+%% Gen server function
 
 start()-> gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 stop()-> gen_server:call(?MODULE, {stop},infinity).
 
 
-ping()-> 
-    gen_server:call(?MODULE, {ping},infinity).
+%%----------------------------------------------------------------------
+ping()->
+    gen_server:call(?MODULE,{ping},infinity).
+
+%%___________________________________________________________________
+
+
 
 %%-----------------------------------------------------------------------
 
-%%----------------------------------------------------------------------
-alert(Msg,Node,Module,Line)->
-    io:format("~p~n",[{Msg,Node,Module,Line,?MODULE,?LINE}]),
-    gen_server:cast(?MODULE,{alert,Msg,Node,Module,Line}).
-ticket(Msg,Node,Module,Line)->
-    gen_server:cast(?MODULE,{ticket,Msg,Node,Module,Line}).
-log(Msg,Node,Module,Line)->
-    gen_server:cast(?MODULE,{log,Msg,Node,Module,Line}).
 
 %% ====================================================================
 %% Server functions
 %% ====================================================================
-
+-define(TestSuit,[{syslog_init_test,start,[],5*5000}
+		 ]).
 %% --------------------------------------------------------------------
 %% Function: init/1
 %% Description: Initiates the server
@@ -84,14 +95,23 @@ log(Msg,Node,Module,Line)->
 %
 %% --------------------------------------------------------------------
 init([]) ->
+    {ok,_}=syslog:start(),
+    ?assertMatch(true,
+		 misc_log:msg(log,
+			      ["Starting gen server =", ?MODULE],
+			      node(),?MODULE,?LINE)),
     
-    %% -- Append to log file
-    File="./"++atom_to_list(?MODULE)++".log",
+    % Testcases
+    Result=[{rpc:call(node(),M,F,A,T),M,F,A}||{M,F,A,T}<-?TestSuit],
+    case [{R,M,F,A}||{R,M,F,A}<-Result,
+	 R/=ok] of
+	[]->
+	    io:format("~p~n",[{?MODULE_STRING++" Sucessfull Unit Test Result"}]);
+	_->
+	    io:format("~p~n",[{?MODULE_STRING++" Failed test ",Result}])
+    end,
+    {ok, #state{}}.
 
-    io:format("~p~n",[{log,["Server "++?MODULE_STRING++" started at node "],node(),?MODULE,?LINE}]),
-    log_files:write_log_file(File,[log,["Server "++?MODULE_STRING++" started at node "],node(),?MODULE,?LINE]),
-    {ok, #state{file=File}}.
-        
 %% --------------------------------------------------------------------
 %% Function: handle_call/3
 %% Description: Handling call messages
@@ -102,15 +122,17 @@ init([]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (aterminate/2 is called)
 %% --------------------------------------------------------------------
-handle_call({ping},_From,State) ->
+
+handle_call({ping}, _From, State) ->
     Reply={pong,node(),?MODULE},
     {reply, Reply, State};
+
 
 handle_call({stop}, _From, State) ->
     {stop, normal, shutdown_ok, State};
 
 handle_call(Request, From, State) ->
-    Reply = {unmatched_signal,?MODULE,Request,From},
+    Reply = {unmatched_signal,?MODULE,?LINE,Request,From},
     {reply, Reply, State}.
 
 %% --------------------------------------------------------------------
@@ -119,38 +141,11 @@ handle_call(Request, From, State) ->
 %% Returns: {noreply, State}          |
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
-%% -------------------------------------------------------------------
+%% --------------------------------------------------------------------
 
-handle_cast({alert,Msg,Node,Module,Line}, State) ->
-    DateTime=log_files:date_time(),
-    rpc:multicall(misc_oam:alert_ticket_terminals(),terminal,print,
-		  ["~s~p ~p ~n                  ~p~n~n",[DateTime,alert,Msg,{Node,Module,Line}]]),   
-    
-    rpc:multicall(misc_oam:log_terminals(),terminal,print,
-		  ["~s~p ~p ~n                  ~p~n~n",[DateTime,alert,Msg,{Node,Module,Line}]]),   
-   
-    io:format("~p~n",[{alert,Msg,Node,Module,Line}]),
-    log_files:write_log_file(State#state.file,[alert,Msg,Node,Module,Line]),
-    {noreply, State};
-handle_cast({ticket,Msg,Node,Module,Line}, State) ->
-    DateTime=log_files:date_time(),
-    rpc:multicall(misc_oam:alert_ticket_terminals(),terminal,print,
-		  ["~s~p ~p ~n                  ~p~n~n",[DateTime,ticket,Msg,{Node,Module,Line}]]),   
-    
-    rpc:multicall(misc_oam:log_terminals(),terminal,print,
-		  ["~s~p ~p ~n                  ~p~n~n",[DateTime,ticket,Msg,{Node,Module,Line}]]),   
-  
-    io:format("~p~n",[{ticket,Msg,Node,Module,Line}]),
-    log_files:write_log_file(State#state.file,[ticket,Msg,Node,Module,Line]),
-    {noreply, State};
-handle_cast({log,Msg,Node,Module,Line}, State) ->
-    DateTime=log_files:date_time(),
-    rpc:multicall(misc_oam:log_terminals(),terminal,print,
-		  ["~s~p ~p ~n                  ~p~n~n",[DateTime,log,Msg,{Node,Module,Line}]]),
-    io:format("~p~n",[{log,Msg,Node,Module,Line}]),
-    log_files:write_log_file(State#state.file,[log,Msg,Node,Module,Line]),
-    {noreply, State};    
+handle_cast({glurk}, State) ->
 
+    {noreply, State};
 
 handle_cast(Msg, State) ->
     io:format("unmatched match cast ~p~n",[{?MODULE,?LINE,Msg}]),
@@ -162,7 +157,6 @@ handle_cast(Msg, State) ->
 %% Returns: {noreply, State}          |
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
-%% --------------------------------------------------------------------
 
 handle_info(Info, State) ->
     io:format("unmatched match info ~p~n",[{?MODULE,?LINE,Info}]),
@@ -194,12 +188,11 @@ code_change(_OldVsn, State, _Extra) ->
 %% Returns: non
 %% --------------------------------------------------------------------
 
+
 %% --------------------------------------------------------------------
 %% Internal functions
 %% --------------------------------------------------------------------
 
 %% --------------------------------------------------------------------
-%% Function: 
-%% Description:
-%% Returns: non
+%% Internal functions
 %% --------------------------------------------------------------------

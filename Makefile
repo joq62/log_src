@@ -1,6 +1,6 @@
 all:
 	erlc -o ebin src/*.erl;
-	rm -rf ebin/* src/*.beam *.beam 1_ebin/*;
+	rm -rf 1_ebin/* test_ebin/* ebin/* */*.beam *.beam ebin/*;
 	rm -rf  *~ */*~  erl_cra* *.log;
 	echo Done
 doc_gen:
@@ -16,9 +16,7 @@ log_terminal:
 	erlc -o 1_ebin ../common_src/src/*.erl;
 #	application terminal
 	erlc -o 1_ebin ../terminal_src/src/*.erl;
-	cp ../../applications/terminal_application/src/*.app 1_ebin;
-	erlc -o 1_ebin ../../applications/terminal_application/src/*.erl;
-	erl -pa 1_ebin -run terminal boot_app -sname log_terminal -setcookie abc
+	erl -pa 1_ebin -s terminal start -sname log_terminal -setcookie abc
 alert_ticket_terminal:
 #	rm -rf 1_ebin/* src/*.beam *.beam;
 #	rm -rf  *~ */*~  erl_cra*;
@@ -26,13 +24,14 @@ alert_ticket_terminal:
 	erlc -o 1_ebin ../common_src/src/*.erl;
 #	application terminal
 	erlc -o 1_ebin ../terminal_src/src/*.erl;
-	cp ../../applications/terminal_application/src/*.app 1_ebin;
-	erlc -o 1_ebin ../../applications/terminal_application/src/*.erl;
-	erl -pa 1_ebin -run terminal boot_app -sname alert_ticket_terminal -setcookie abc
+	erl -pa 1_ebin -s terminal start -sname alert_ticket_terminal -setcookie abc
 test:
-	rm -rf ebin/* src/*.beam *.beam;
-	rm -rf  *~ */*~  erl_cra*;
+	rm -rf test_ebin/* ebin/* test_src/*.beam src/*.beam *.beam;
+	rm -rf  *~ */*~  erl_cra* *.log;
 #	common
 	erlc -o ebin ../common_src/src/*.erl;
+#	application 
 	erlc -o ebin src/*.erl;
-	erl -pa ebin -s log_unit_tests start -sname log_test -setcookie abc
+#	test
+	erlc -o test_ebin test_src/*.erl;
+	erl -pa ebin -pa test_ebin -s syslog_unit_test start -sname syslog -setcookie abc

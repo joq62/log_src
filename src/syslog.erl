@@ -5,7 +5,7 @@
 %%% 
 %%% Created : 
 %%% -------------------------------------------------------------------
--module(sys_log). 
+-module(syslog).  
 
 -behaviour(gen_server).
 %% --------------------------------------------------------------------
@@ -20,7 +20,7 @@
 %% Key Data structures
 %% 
 %% --------------------------------------------------------------------
--record(state, {}).
+-record(state, {file}).
 
 
 
@@ -29,6 +29,8 @@
 %% --------------------------------------------------------------------
 
 % OaM related
+-export([msg/5
+       ]).
 -export([alert/4,
 	 ticket/4,
 	 log/4]).
@@ -63,13 +65,20 @@ ping()->
 
 %%----------------------------------------------------------------------
 alert(Msg,Node,Module,Line)->
-    io:format("~p~n",[{Msg,Node,Module,Line,?MODULE,?LINE}]),
+ %   io:format("~p~n",[{Msg,Node,Module,Line,?MODULE,?LINE}]),
     gen_server:cast(?MODULE,{alert,Msg,Node,Module,Line}).
 ticket(Msg,Node,Module,Line)->
+ %   io:format("~p~n",[{Msg,Node,Module,Line,?MODULE,?LINE}]),
     gen_server:cast(?MODULE,{ticket,Msg,Node,Module,Line}).
 log(Msg,Node,Module,Line)->
+ %   io:format("~p~n",[{Msg,Node,Module,Line,?MODULE,?LINE}]),
     gen_server:cast(?MODULE,{log,Msg,Node,Module,Line}).
 
+msg(NodeList,Type,MsgList,Module,Line)->
+    Node=node(),
+    gen_server:cast(?MODULE,{msg,NodeList,Type,MsgList,Node,Module,Line}).
+
+    
 %% ====================================================================
 %% Server functions
 %% ====================================================================
@@ -84,8 +93,14 @@ log(Msg,Node,Module,Line)->
 %
 %% --------------------------------------------------------------------
 init([]) ->
-    {ok, #state{}}.
     
+    %% -- Append to log file
+    File="./"++atom_to_list(?MODULE)++".log",
+
+    io:format("~p~n",[{log,["Server "++?MODULE_STRING++" started at node "],node(),?MODULE,?LINE}]),
+    log_files:write_log_file(File,[log,["Server "++?MODULE_STRING++" started at node "],node(),?MODULE,?LINE]),
+    {ok, #state{file=File}}.
+        
 %% --------------------------------------------------------------------
 %% Function: handle_call/3
 %% Description: Handling call messages
@@ -115,23 +130,43 @@ handle_call(Request, From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% -------------------------------------------------------------------
 
+handle_cast({msg,NodeList,Type,MsgList,Node,Module,Line}, State) ->
+    rpc:multicall(NodeList,
+		  sys_log,Type,
+		  [MsgList,
+		   Node,Module,Line]),
+    {noreply, State};
+
+
+
 handle_cast({alert,Msg,Node,Module,Line}, State) ->
-    rpc:multicall(misc_oam:alert_ticket_terminals(),terminal,print,["~p~n",[{alert,Msg,Node,Module,Line}]]),
-    rpc:multicall(misc_oam:log_terminals(),terminal,print,["~p~n",[{alert,Msg,Node,Module,Line}]]),
-    io:format("~p~n",[{alert,Msg,Node,Module,Line}]),
-    log_files:write_log_file(State#state.file,{alert,Msg,Node,Module,Line}),
-    {ok, State};
+    DateTime=log_files:date_time(),
+    rpc:multicall(misc_log:alert_ticket_terminals(),terminal,print,
+		  ["~s~p ~p ~n                  ~p~n~n",[DateTime,alert,Msg,{Node,Module,Line}]]),   
+    
+    rpc:multicall(misc_log:log_terminals(),terminal,print,
+		  ["~s~p ~p ~n                  ~p~n~n",[DateTime,alert,Msg,{Node,Module,Line}]]),   
+   
+    log_files:write_log_file(State#state.file,[alert,Msg,Node,Module,Line]),
+    {noreply, State};
+
 handle_cast({ticket,Msg,Node,Module,Line}, State) ->
-    rpc:multicall(misc_oam:alert_ticket_terminals(),terminal,print,["~p~n",[{ticket,Msg,Node,Module,Line}]]),
-    rpc:multicall(misc_oam:log_terminals(),terminal,print,["~p~n",[{ticket,Msg,Node,Module,Line}]]),
-    io:format("~p~n",[{ticket,Msg,Node,Module,Line}]),
-    log_files:write_log_file(State#state.file,{ticket,Msg,Node,Module,Line}),
-    {ok, State};
+    DateTime=log_files:date_time(),
+    rpc:multicall(misc_log:alert_ticket_terminals(),terminal,print,
+		  ["~s~p ~p ~n                  ~p~n~n",[DateTime,ticket,Msg,{Node,Module,Line}]]),   
+    
+    rpc:multicall(misc_log:log_terminals(),terminal,print,
+		  ["~s~p ~p ~n                  ~p~n~n",[DateTime,ticket,Msg,{Node,Module,Line}]]),   
+  
+    log_files:write_log_file(State#state.file,[ticket,Msg,Node,Module,Line]),
+    {noreply, State};
+
 handle_cast({log,Msg,Node,Module,Line}, State) ->
-    rpc:multicall(misc_oam:log_terminals(),terminal,print,["~p~n",[{log,Msg,Node,Module,Line}]]),
-    io:format("~p~n",[{log,Msg,Node,Module,Line}]),
-    log_files:write_log_file(State#state.file,{log,Msg,Node,Module,Line}),
-    {ok, State};    
+    DateTime=log_files:date_time(),
+    rpc:multicall(misc_log:log_terminals(),terminal,print,
+		  ["~s~p ~p ~n                  ~p~n~n",[DateTime,log,Msg,{Node,Module,Line}]]),
+    log_files:write_log_file(State#state.file,[log,Msg,Node,Module,Line]),
+    {noreply, State};    
 
 
 handle_cast(Msg, State) ->

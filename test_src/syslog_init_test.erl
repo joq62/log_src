@@ -4,13 +4,12 @@
 %%% 
 %%% Created : 10 dec 2012
 %%% -------------------------------------------------------------------
--module(log_normal_test).  
+-module(syslog_init_test).   
    
 %% --------------------------------------------------------------------
 %% Include files
 %% --------------------------------------------------------------------
 -include_lib("eunit/include/eunit.hrl").
--include_lib("kernel/include/logger.hrl").
 %% --------------------------------------------------------------------
 
 %% External exports
@@ -31,21 +30,12 @@ start()->
     ?debugMsg("Start setup"),
     ?assertEqual(ok,setup()),
     ?debugMsg("stop setup"),
-    
-    ?debugMsg("Start test_1"),
-    ?assertEqual(ok,test_1()),
-    ?debugMsg("stop test_1"),
 
-    ?debugMsg("Start test_2"),
-    ?assertEqual(ok,test_2()),
-    ?debugMsg("stop test_2"),
-
- 
-%   ?debugMsg("Start test_3"),
-%    ?assertEqual(ok,test_3(2000)),
-%    ?debugMsg("stop test_3"),
+    ?debugMsg("Start normal"),
+    ?assertEqual(ok,normal()),
+    ?debugMsg("stop normal"),
     
-   
+  
       %% End application tests
     ?debugMsg("Start cleanup"),
     ?assertEqual(ok,cleanup()),
@@ -60,55 +50,27 @@ start()->
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% --------------------------------------------------------------------
-test_3(0)->
-    ok;
-test_3(N) ->
-    logger:alert("Alert"),
-    logger:notice("Notice"),
-    logger:info("Info"),
-    zz:alert("Alert out of disc ~n"),
-    test_3(N-1).
-%% --------------------------------------------------------------------
-%% Function:start/0 
-%% Description: Initiate the eunit tests, set upp needed processes etc
-%% Returns: non
-%% --------------------------------------------------------------------
-   
-
-%% --------------------------------------------------------------------
-%% Function:start/0 
-%% Description: Initiate the eunit tests, set upp needed processes etc
-%% Returns: non
-%% --------------------------------------------------------------------
-test_2()->
-   ?assertMatch({ok,_},
-	        myhandler2:start()), 
-    
-    ?assertMatch(ok,logger:error("Write to file test")),
-    ok.
-%% --------------------------------------------------------------------
-%% Function:start/0 
-%% Description: Initiate the eunit tests, set upp needed processes etc
-%% Returns: non
-%% --------------------------------------------------------------------
-test_1()->
-    ?assertMatch({ok,_},
-		 handler_basic:start()),
-     ?assertMatch(ok,logger:error("Basic text test_1 ~n")),
-
-    ?assertMatch({ok,_},
-		 handler_basic_terminal:start()),
-     ?assertMatch(ok,handler_basic_terminal:info("Basic text on terminal~n")),
-    
-    ok.
-%% --------------------------------------------------------------------
-%% Function:start/0 
-%% Description: Initiate the eunit tests, set upp needed processes etc
-%% Returns: non
-%% --------------------------------------------------------------------
 setup()->
-  
     ok.
+
+normal()->
+
+    ?assertMatch(true,
+		 misc_log:msg(log,
+			    ["log test =", ?MODULE],
+			      node(),?MODULE,?LINE)),
+    ?assertMatch(true,
+		 misc_log:msg(ticket,
+			      ["ticket test =", ?MODULE],
+			      node(),?MODULE,?LINE)),
+    
+    ?assertMatch(true,
+		 misc_log:msg(alert,
+			      ["alert test =", ?MODULE],
+			      node(),?MODULE,?LINE)),
+    
+    
+     ok.
 
 %% --------------------------------------------------------------------
 %% Function:start/0 
@@ -118,7 +80,7 @@ setup()->
 
 cleanup()->
   
-    init:stop(),
+  %  init:stop(),
     ok.
 %% --------------------------------------------------------------------
 %% Function:start/0 
